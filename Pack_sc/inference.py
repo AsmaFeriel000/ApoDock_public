@@ -433,8 +433,9 @@ def write_pdbs(
     CA_icodes, Chain_letters = get_letter_codes(pocket_list)
     CA_icodes_list = [CA_icodes[i:i + batch_size] for i in range(0, len(CA_icodes), batch_size)]
     Chain_letters_list = [Chain_letters[i:i + batch_size] for i in range(0, len(Chain_letters), batch_size)]
-    with torch.cuda.device(device):
-            torch.cuda.empty_cache()
+    if device == "cuda":
+        with torch.cuda.device(device):
+                torch.cuda.empty_cache()
     # print(len(results_list))
     for i, results in enumerate(results_list):
 

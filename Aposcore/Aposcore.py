@@ -72,7 +72,7 @@ class Aposcore(nn.Module):
         self.N_p = N_p
 
         ## Get batch indexes for ligand-target combined features
-        C_batch =torch.tensor(range(B)).unsqueeze(-1).unsqueeze(-1).repeat(1, N_l, N_p)
+        C_batch =torch.tensor(range(B)).unsqueeze(-1).unsqueeze(-1).repeat(1, N_l, N_p).to(x_l.device)
         C_batch = C_batch[Interact_mask]
         
         
