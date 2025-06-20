@@ -189,7 +189,7 @@ def get_file_list(data_dir):
     ligand_list = []
     pocket_list = []
     for pdbid in pdb_files:
-        pocket = [i for i in os.listdir(os.path.join(data_dir,pdbid)) if i.endswith("10A.pdb")]
+        pocket = [i for i in os.listdir(os.path.join(data_dir,pdbid)) if i.endswith("100A.pdb")]
         assert len(pocket) > 0 
         pocket = os.path.join(data_dir,pdbid,pocket[0])
         ligand = [i for i in os.listdir(os.path.join(data_dir,pdbid)) if i.endswith("_ligand.sdf") \
@@ -252,64 +252,67 @@ def infer(model, dataloader, device, temperature=1.0, n_recycle=3, resample=True
     model.eval()
 
     results_list = []
-    for batch in dataloader:
-        batch["ligand"] = batch["ligand"].to(device)
-        batch["protein"] = batch["protein"].to(device)
-        feature_dict = pro2feature_dict(batch["protein"])
-        lig_feat = model.lin_node_lig(batch["ligand"].x)
+    with torch.no_grad():
+        for batch in dataloader:
+            batch["ligand"] = batch["ligand"].to(device)
+            batch["protein"] = batch["protein"].to(device)
+            feature_dict = pro2feature_dict(batch["protein"])
+            lig_feat = model.lin_node_lig(batch["ligand"].x)
     
-        for conv in model.conv:
-            x_l = conv(lig_feat, batch["ligand"].edge_index,batch["ligand"].edge_attr)
-        lig_feat = x_l
+            for conv in model.conv:
+                x_l = conv(lig_feat, batch["ligand"].edge_index,batch["ligand"].edge_attr)
+            lig_feat = x_l
         
 
-        lig_batch, lig_mask = to_dense_batch(lig_feat, batch["ligand"].batch, fill_value=0)
+            lig_batch, lig_mask = to_dense_batch(lig_feat, batch["ligand"].batch, fill_value=0)
 
-        results = model.sample(
-            lig_batch,
-            lig_mask,
-            feature_dict,
-            temperature=temperature,
-            n_recycle=n_recycle,
-        )
+            results = model.sample(
+                lig_batch,
+                lig_mask,
+                feature_dict,
+                temperature=temperature,
+                n_recycle=n_recycle,
+            )
 
-        results.update(
-            {
-                "ligand": batch["ligand"],
-                "protein": batch["protein"],
-                "mask": feature_dict["mask"],
-                "atom14_mask": feature_dict["atom14_mask"],
-                "S": feature_dict["S"],
-                "aa_type": feature_dict["aatype"],
-                "R_idx": feature_dict["R_idx"],
-                "chain_labels": feature_dict["chain_labels"],
-                "BB_D": feature_dict["BB_D"],
-            }
-        )
-
-        for key in results: # detach and move to cpu
-            results[key] = results[key].detach().cpu()
-        if resample:
-            
-            for i in range(results["final_X"].shape[0]):  
-                protein = {
-                    "S": results["aa_type"][i],
-                    "X": results["final_X"][i],
-                    "BB_D": results["BB_D"][i],
-                    "X_mask": results["atom14_mask"][i],
-                    "residue_mask": results["mask"][i],
-                    "residue_index": results["R_idx"][i],
-                    "chi_logits": results["chi_logits"][i],
-                    "chi_bin_offset": results["chi_bin_offset"][i],
+            results.update(
+                {
+                    "ligand": batch["ligand"],
+                    "protein": batch["protein"],
+                    "mask": feature_dict["mask"],
+                    "atom14_mask": feature_dict["atom14_mask"],
+                    "S": feature_dict["S"],
+                    "aa_type": feature_dict["aatype"],
+                    "R_idx": feature_dict["R_idx"],
+                    "chain_labels": feature_dict["chain_labels"],
+                    "BB_D": feature_dict["BB_D"],
                 }
+            )
 
-                pred_xyz = results["final_X"][i]
+            #for key in results: # detach and move to cpu
+            #    print(results[key])
+            #    results[key] = results[key].detach().cpu()
+            if resample:
+            
+                for i in range(results["final_X"].shape[0]):  
+                    protein = {
+                        "S": results["aa_type"][i],
+                        "X": results["final_X"][i],
+                        "BB_D": results["BB_D"][i],
+                        "X_mask": results["atom14_mask"][i],
+                        "residue_mask": results["mask"][i],
+                        "residue_index": results["R_idx"][i],
+                        "chi_logits": results["chi_logits"][i],
+                        "chi_bin_offset": results["chi_bin_offset"][i],
+                    }
 
-                resample_xyz, _ = resample_loop(protein,pred_xyz, **resample_args)
+                    pred_xyz = results["final_X"][i]
 
-                results["final_X"][i] = resample_xyz
+                    resample_xyz, _ = resample_loop(protein,pred_xyz, **resample_args)
 
-        results_list.append(results)
+                    results["final_X"][i] = resample_xyz
+
+                results_list.append(results)
+
     return results_list
 
             

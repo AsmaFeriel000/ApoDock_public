@@ -277,7 +277,7 @@ def Pocket_BB_D(pdb_file, chain_id, pocket_residue_ids):
 
 
 
-def mols2graphs(complex_path,pdbid,save_path_l,save_path_aa, ref_pocket, pocket_dis=10):
+def mols2graphs(complex_path,pdbid,save_path_l,save_path_aa, ref_pocket, pocket_dis=100):
     print(pdbid)
     with open(complex_path, 'rb') as f:
         ligand, pocket = pickle.load(f)
@@ -398,7 +398,7 @@ class GraphDataset(Dataset):
     """
     This class is used for generating graph objects using multi process
     """
-    def __init__(self, data_dir, data_df, dis_threshold=10, graph_type='MPNN', ref_pocket=False, num_process=1, create=False):
+    def __init__(self, data_dir, data_df, dis_threshold=100, graph_type='MPNN', ref_pocket=False, num_process=1, create=False):
         self.data_dir = data_dir
         self.data_df = data_df
         self.dis_threshold = dis_threshold

@@ -244,7 +244,7 @@ def flex_docking(
 
     print("docking complete")
 
-def get_pocket(ref_ligand, protein, out_dir, distance=10):
+def get_pocket(ref_ligand, protein, out_dir, distance=100):
     """
     This function gets the pocket of the protein using pymol
     """
@@ -262,7 +262,7 @@ def get_pocket(ref_ligand, protein, out_dir, distance=10):
 
     return pocket_path
 
-def get_pocket_list(protein_list, ref_lig_list, out_dir, distance=10):
+def get_pocket_list(protein_list, ref_lig_list, out_dir, distance=100):
     out_dirs = []
     for protein, ref_lig in zip(protein_list, ref_lig_list):
         id = os.path.basename(protein).split('_protein')[0]
