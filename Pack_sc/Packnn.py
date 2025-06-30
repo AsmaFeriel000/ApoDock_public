@@ -326,7 +326,7 @@ class Pack(nn.Module):
         out_puts["chi_logits"] = CH_logits
         out_puts["V"] = h_VS_out
         if self.predict_offset:
-            offset = (2*torch.pi/self.n_chi_bins) * torch.sigmoid(self.W_out_offset(h_V))
+            offset = (2*np.pi/self.n_chi_bins) * torch.sigmoid(self.W_out_offset(h_V))
             out_puts["offset"] = offset
         return out_puts, lig_batch
     
@@ -339,14 +339,14 @@ class Pack(nn.Module):
         chi_bin_one_hot = F.one_hot(chi_bin, num_classes=self.n_chi_bins + 1)
 
         # Determine actual chi value from bin
-        chi_bin_rad = torch.cat((torch.arange(-torch.pi, torch.pi, 2 * torch.pi / self.n_chi_bins, device=chi_bin.device), torch.tensor([0]).to(device=chi_bin.device)))
+        chi_bin_rad = torch.cat((torch.arange(-np.pi, np.pi, 2 * np.pi / self.n_chi_bins, device=chi_bin.device), torch.tensor([0]).to(device=chi_bin.device)))
         pred_chi_bin = torch.sum(chi_bin_rad.view(*([1] * len(chi_bin.shape)), -1) * chi_bin_one_hot, dim=-1)
         
         # Add bin offset if provided
         if self.predict_offset and chi_bin_offset is not None:
             bin_sample_update = chi_bin_offset
         else:
-            bin_sample_update = (2 * torch.pi / self.n_chi_bins) * torch.rand(chi_bin.shape, device=chi_bin.device)
+            bin_sample_update = (2 * np.pi / self.n_chi_bins) * torch.rand(chi_bin.shape, device=chi_bin.device)
         sampled_chi = pred_chi_bin + bin_sample_update
         
         return sampled_chi
@@ -455,7 +455,7 @@ class Pack(nn.Module):
             CH = torch.argmax(chi_probs, dim=-1)   
 
         if self.predict_offset:
-            offset = (2*torch.pi/self.n_chi_bins) * torch.sigmoid(self.W_out_offset(h_V))
+            offset = (2*np.pi/self.n_chi_bins) * torch.sigmoid(self.W_out_offset(h_V))
         out_put = {
             "chi_bin": CH,
             "chi_probs": chi_probs,

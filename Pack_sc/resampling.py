@@ -1,6 +1,7 @@
 from typing import Dict
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 from openfold.np import residue_constants as rc
 from data_utils import calc_sc_dihedrals, get_atom14_coords_infer
@@ -246,7 +247,7 @@ def get_proline_chi_bins(batch, atom14_pred_positions, proline_indices=None) -> 
         # Get the proline chi values and bins
         SC_D, _ = calc_sc_dihedrals(atom14_pred_positions.squeeze()[proline_indices], batch["S"].squeeze()[proline_indices])
     # SC_D_bin = (SC_D + torch.pi) // (2 * torch.pi / (batch['chi_logits'].shape[-1] - 1))
-    SC_D_bin = torch.div(SC_D + torch.pi, 2 * torch.pi / (batch['chi_logits'].shape[-1] - 1), rounding_mode='floor')
+    SC_D_bin = torch.div(SC_D + np.pi, 2 * np.pi / (batch['chi_logits'].shape[-1] - 1), rounding_mode='floor')
 
     
     return SC_D_bin
@@ -268,13 +269,13 @@ def resample_clashes(batch, atom14_pred_positions, clashing_indices, temperature
     else:
         chi_bin = torch.argmax(F.softmax(resampled_chi_logits, -1), dim=-1)
     chi_bin_one_hot = F.one_hot(chi_bin, num_classes=resampled_chi_logits.shape[-1])
-    chi_bin_rad = torch.cat((torch.arange(-torch.pi, torch.pi, 2 * torch.pi / (resampled_chi_logits.shape[-1] - 1), device=chi_bin.device), torch.tensor([0]).to(device=chi_bin.device)))
+    chi_bin_rad = torch.cat((torch.arange(-np.pi, np.pi, 2 * np.pi / (resampled_chi_logits.shape[-1] - 1), device=chi_bin.device), torch.tensor([0]).to(device=chi_bin.device)))
     pred_chi_bin = torch.sum(chi_bin_rad.view(*([1] * len(chi_bin.shape)), -1) * chi_bin_one_hot, dim=-1)
     chi_bin_offset = batch.get('chi_bin_offset', None)
     if chi_bin_offset is not None:
         bin_sample_update = chi_bin_offset.squeeze()[clashing_indices]
     else:
-        bin_sample_update = (2 * torch.pi / (resampled_chi_logits.shape[-1] - 1)) * torch.rand(chi_bin.shape, device=chi_bin.device)
+        bin_sample_update = (2 * np.pi / (resampled_chi_logits.shape[-1] - 1)) * torch.rand(chi_bin.shape, device=chi_bin.device)
     chi_pred = pred_chi_bin + bin_sample_update
     
     # Construct resampled atom14 coordinates
@@ -325,13 +326,13 @@ def resample_prolines(batch, atom14_pred_positions, proline_indices, temperature
                 
                 # Check if proline is closed
                 chi_bin_one_hot = F.one_hot(chi_bin, num_classes=resampled_chi_logits.shape[-1])
-                chi_bin_rad = torch.cat((torch.arange(-torch.pi, torch.pi, 2 * torch.pi / (resampled_chi_logits.shape[-1] - 1), device=chi_bin.device), torch.tensor([0]).to(device=chi_bin.device)))
+                chi_bin_rad = torch.cat((torch.arange(-np.pi, np.pi, 2 * np.pi / (resampled_chi_logits.shape[-1] - 1), device=chi_bin.device), torch.tensor([0]).to(device=chi_bin.device)))
                 pred_chi_bin = torch.sum(chi_bin_rad.view(*([1] * len(chi_bin.shape)), -1) * chi_bin_one_hot, dim=-1)
                 chi_bin_offset = batch.get('chi_bin_offset', None)
                 if chi_bin_offset is not None:
                     bin_sample_update = chi_bin_offset.squeeze()[proline_indices][pro_i]
                 else:
-                    bin_sample_update = (2 * torch.pi / (resampled_chi_logits.shape[-1] - 1)) * torch.rand(chi_bin.shape, device=chi_bin.device)
+                    bin_sample_update = (2 * np.pi / (resampled_chi_logits.shape[-1] - 1)) * torch.rand(chi_bin.shape, device=chi_bin.device)
                 chi_pred = pred_chi_bin + bin_sample_update
                 aatype_chi_mask = torch.tensor(chi_mask_atom14, dtype=torch.float32, device=chi_pred.device)[rc.restype_order['P']]
                 chi_pred = aatype_chi_mask * chi_pred
@@ -402,14 +403,14 @@ def wiggle_prolines(batch, atom14_pred_positions, proline_indices, wiggle_factor
         for chi in chis_to_try:
             # Check if proline is closed
             chi_bin_one_hot = F.one_hot(torch.tensor(chi).to(device=resampled_X.device), num_classes=resampled_chi_logits.shape[-1])
-            chi_bin_rad = torch.cat((torch.arange(-torch.pi, torch.pi, 2 * torch.pi / num_bins, device=chi_bin_one_hot.device), torch.tensor([0]).to(device=chi_bin_one_hot.device)))
+            chi_bin_rad = torch.cat((torch.arange(-np.pi, np.pi, 2 * np.pi / num_bins, device=chi_bin_one_hot.device), torch.tensor([0]).to(device=chi_bin_one_hot.device)))
             pred_chi_bin = torch.sum(chi_bin_rad * chi_bin_one_hot, dim=-1)
             pred_chi_bin = torch.cat((pred_chi_bin, torch.tensor([0, 0]).to(device=chi_bin_one_hot.device)), dim=-1)
             chi_bin_offset = batch.get('chi_bin_offset', None)
             if chi_bin_offset is not None:
                 bin_sample_update = chi_bin_offset.squeeze()[proline_indices][pro_i]
             else:
-                bin_sample_update = (2 * torch.pi / num_bins) * torch.rand(chi_bin_one_hot.shape, device=chi_bin_one_hot.device)
+                bin_sample_update = (2 * np.pi / num_bins) * torch.rand(chi_bin_one_hot.shape, device=chi_bin_one_hot.device)
             chi_pred = pred_chi_bin + bin_sample_update
             aatype_chi_mask = torch.tensor(chi_mask_atom14, dtype=torch.float32, device=chi_pred.device)[rc.restype_order['P']]
             chi_pred = aatype_chi_mask * chi_pred

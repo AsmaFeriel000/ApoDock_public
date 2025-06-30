@@ -1417,7 +1417,8 @@ def calc_bb_dihedrals(atom_positions: Array, residue_index: Optional[Array] = No
         # Update dihedral_mask
         bb_dihedrals_mask = bb_dihedrals_mask * np.isfinite(bb_dihedrals).astype(np.float32)
     else:
-        bb_dihedrals = F.pad(bb_dihedrals, [1, 2], value=torch.nan) # Add empty phi[0], psi[-1], and omega[-1]
+        bb_dihedrals = F.pad(bb_dihedrals, [1, 2], value=np.nan) # Add empty phi[0], psi[-1], and omega[-1] djc
+        #bb_dihedrals = F.pad(bb_dihedrals, [1, 2], value=torch.nan) # Add empty phi[0], psi[-1], and omega[-1]
         bb_dihedrals = bb_dihedrals.reshape((atom_positions.shape[0], 3))
         
         # Get mask based on residue_index
@@ -1430,7 +1431,8 @@ def calc_bb_dihedrals(atom_positions: Array, residue_index: Optional[Array] = No
         
         if use_pre_omega:
             # Move omegas such that they're "pre-omegas" and reorder dihedrals
-            bb_dihedrals[:, 2] = torch.cat((torch.tensor([torch.nan]), bb_dihedrals[:-1, 2]), dim=-1)
+            bb_dihedrals[:, 2] = torch.cat((torch.tensor([np.nan]), bb_dihedrals[:-1, 2]), dim=-1) # djc
+            #bb_dihedrals[:, 2] = torch.cat((torch.tensor([torch.nan]), bb_dihedrals[:-1, 2]), dim=-1)
             bb_dihedrals[:, [0, 1, 2]] = bb_dihedrals[:, [2, 0, 1]]
             bb_dihedrals_mask[:, 1] = bb_dihedrals_mask[:, 0]
             
